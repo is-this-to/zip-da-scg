@@ -1,0 +1,93 @@
+# 웹 서버가 몇 번 포트(Port)에서 응답을 대기할지 결정하는 설정
+server:
+  # 환경변수로 분리하는 이유
+  # 1. 배포의 편리성-환경별로 코드 수정 불필요
+  # 2. 보안강화-하드코딩 방지 및 민감정보 보호
+  port: ${APP_PORT}
+
+spring:
+  application:
+    # scg: Spring Cloud Gateway의 약자
+    # 핵심: 이 서버는 MSA(마이크로 서비스 아키텍처)환경에서 사용자의 요청을 가장 먼저 받아 알맞은 내부
+    #     서버들로 길을 안내해 주는 API게이트 웨이(문지기)역할을 하는 서버의 의미를 가진다.
+    name: zip-da-scg
+    version: v1
+  web:
+    # 스프링부트에서 웹 요청 처리 중 에러(오류)가 발생했을 때 클라이언트에게 어떤 정보를 응답으로 보낼지 결정하는 설정
+    # 주의사항(보안 관련)
+    # always 설정은 내부 코드를 들여다보며 테스트하기 편하기 때문에 로컬 환경에서는 유용하지만, 실제 서비스 배포 시에는 이 값을 never로
+    # 바꾸거나 설정에서 제외 시켜야 함. 그대로 노출되면 보안상 매우 취약해질 수 있음.
+    error:
+      # 에러 발생 시 스택 트레이스를 항상 포함해서 응답하겠다는 의미.
+      include-stacktrace: always
+      # 에러 발생시 에러 메시지를 항상 포함해서 응답하겠다는 의미.
+      include-message: always
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # 게이트웨이를 거쳐가는 모든 요청(Request)의 최대 크기를 20MB로 제한하는 설정.
+          # 악의적인 사용자가 너무 큰 파일이나 데이터를 한 번에 서버로 보내서 서버를 다운시키는 공격(DoS)을 방지하거나,
+          # 불필요한 트래픽 낭비를 막기 위한 기본 방어선 역할을 함.
+          default-filters:
+            - name: RequestSize
+              args:
+                maxSize: 20MB
+          # 웹 브라우저의 보안 정책(CORS)을 우회하여, 허용된 출처의 프론트엔드가 이 API 서버와 안전하게 통신할 수 있도록 길을 열어주는 설정.
+          # [/**] 는 모든 경로에 이 규칙을 적용한다는 의미.
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                # 허용할 도메인 주소
+                allowed-origins: ${CORS_ALLOW_ORIGIN}
+                # 허용할 HTTP 요청 방식(조회, 생성, 수정, 삭제 등)을 지정.
+                allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+                # 모든 헤더 값을 허용
+                allowed-headers: "*"
+                # 쿠키나 인증정보(Authorization 헤더 등)를 포함한 요청을 주고받는 것을 허용.
+                allow-credentials: true
+          # 클라이언트가 보낸 요청의 주소를 보고, "어떤 내부 마이크로서비스로 토스해줄지" 길을 안내(Routing)해 주는 규칙.
+          routes:
+            # 이 라우팅 규칙의 고유 이름.
+            - id: ${MEMBER_SERVICE_NAME}
+              # 조건에 맞는 요청을 최종적으로 어느 서버(IP 및 포트)로 보낼지 그 목적지 주소를 뜻함.
+              uri: ${MEMBER_SERVICE_URI}
+              # 어떤 주소로 요청이 왔을 때 이 규칙을 탈 것인지 조건을 건다.
+              # 예를들어 /members/** 같은 경로로 요청이 오면 이 규칙이 발동하여 회원 서비스로 연결 됨.
+              predicates:
+                - Path=${MEMBER_SERVICE_PREDICATE}
+
+            # Open API UI가 각 하위 서비스와 스펙을 GateWay가 origin으로 받아와서 출력하도록 설정
+              # 이 라우팅 규칙의 고유한 이름표 (구분을 위한 ID)
+            - id: ${MEMBER_SERVICE_NAME}-docs
+              # 요청을 최종적으로 토스해 줄 실제 라우팅 할 서버의 주소
+              uri: ${MEMBER_SERVICE_URI}
+              # 이 주소로 요청이 들어올 때만 이 규칙을 실행하겠다는 '조건'
+              predicates:
+                - Path=/${MEMBER_SERVICE_NAME}${MEMBER_SERVICE_OPEN_API_PATH}
+              # 내부 서버가 이해하도록 주소 앞의 서비스 이름을 지우고 깔끔하게 변환함.
+              filters:
+                - RewritePath=/${MEMBER_SERVICE_NAME}${MEMBER_SERVICE_OPEN_API_PATH}, ${MEMBER_SERVICE_OPEN_API_PATH}
+
+# Open API
+# 게이트 웨이 화면에 통합 Swagger UI를 띄우는 설정
+springdoc:
+  swagger-ui:
+    # 인터넷 창에 입력해서 접속할 통합 문서 페이지 주소 (예: http://localhost/docs)
+    path: /docs
+    urls:
+        # 문서 페이지 우측 상단 드롭다운 메뉴에 표시될 서비스 이름
+      - name: ${MEMBER_SERVICE_NAME}
+        # 해당 메뉴를 눌렀을 때 데이터를 가져올 경로 (위의 라우팅 규칙과 연결됨)
+        url: /${MEMBER_SERVICE_NAME}${MEMBER_SERVICE_OPEN_API_PATH}
+
+# jwt
+jwt:
+  # 클라이언트가 서버로 요청을 보낼 때, 인증 토큰(JWT)을 어떤 이름의 HTTP 헤더에 담아서 보낼지 그 이름을 지정하는 설정
+  # (예: Authorization: Bearer 토큰값...)
+  header-key: Authorization
+  # Bearer는 "이 토큰을 들고 있는(Bearer) 사람에게 권한을 부여한다"는 뜻으로, JWT 인증에서 가장 널리 쓰이는 표준 방식이다.
+  # 헤더에 토큰 값을 넣을 때 앞에 Bearer라는 단어를 붙여서 보내게 된다.
+  scheme: Bearer
+  # JWT 토큰이 진짜인지 위조되지는 않았는지 검증할 때 사용하는 비밀 키(Secret Key)이다.
+  secret: ${JWT_SECRET}
