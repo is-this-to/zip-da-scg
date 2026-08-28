@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
-@Order(-2)
+@Order(-2) // spring의 기본 ErrorWebExceptionHandler보다 먼저 실행시키기 위해 '-2' 실행
 @RequiredArgsConstructor
 public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
     private final ObjectMapper objectMapper;
@@ -24,9 +24,7 @@ public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
     @NonNull
     public Mono<Void> handle(@NonNull ServerWebExchange exchange, @NonNull Throwable ex) {
         ServerHttpResponse response = exchange.getResponse();
-        CustomResponseCode customResponseCode = (
-                ex instanceof ResponseStatusException res
-                && res.getStatusCode().value() == 404)
+        CustomResponseCode customResponseCode = (ex instanceof ResponseStatusException res && res.getStatusCode().value() == 404)
                 ? CustomResponseCode.NOT_FOUND_ERROR
                 : CustomResponseCode.SYSTEM_ERROR;
 
@@ -36,5 +34,4 @@ public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
         byte[] bytes = objectMapper.writeValueAsBytes((GlobalResponseDTO.from(customResponseCode)));
         return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
     }
-
 }
