@@ -56,6 +56,14 @@ spring:
               # 예를들어 /members/** 같은 경로로 요청이 오면 이 규칙이 발동하여 회원 서비스로 연결 됨.
               predicates:
                 - Path=${MEMBER_SERVICE_PREDICATE}
+            # 이 라우팅 규칙의 고유 이름.
+            - id: ${PROPERTY_SERVICE_NAME}
+              # 조건에 맞는 요청을 최종적으로 어느 서버(IP 및 포트)로 보낼지 그 목적지 주소를 뜻함.
+              uri: ${PROPERTY_SERVICE_URI}
+              # 어떤 주소로 요청이 왔을 때 이 규칙을 탈 것인지 조건을 건다.
+              # 예를들어 /members/** 같은 경로로 요청이 오면 이 규칙이 발동하여 회원 서비스로 연결 됨.
+              predicates:
+                - Path=${PROPERTY_SERVICE_PREDICATE}
 
             # Open API UI가 각 하위 서비스와 스펙을 GateWay가 origin으로 받아와서 출력하도록 설정
               # 이 라우팅 규칙의 고유한 이름표 (구분을 위한 ID)
