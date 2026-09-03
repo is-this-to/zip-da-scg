@@ -25,8 +25,8 @@ public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
     public Mono<Void> handle(@NonNull ServerWebExchange exchange, @NonNull Throwable ex) {
         ServerHttpResponse response = exchange.getResponse();
         CustomResponseCode customResponseCode = (ex instanceof ResponseStatusException res && res.getStatusCode().value() == 404)
-                ? CustomResponseCode.NOT_FOUND_ERROR
-                : CustomResponseCode.SYSTEM_ERROR;
+                ? CustomResponseCode.SCG_NOT_FOUND_ERROR
+                : CustomResponseCode.SCG_SYSTEM_ERROR;
 
         response.setStatusCode(customResponseCode.getHttpStatus());
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
