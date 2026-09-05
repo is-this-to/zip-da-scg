@@ -1,5 +1,6 @@
 package com.zipdascg.global.filter;
 
+import com.zipdascg.global.context.TraceIdContext;
 import com.zipdascg.global.error.custom.InvalidTokenException;
 import com.zipdascg.global.jwt.JwtConfig;
 import com.zipdascg.global.jwt.JwtProvider;
@@ -113,11 +114,22 @@ public class AuthFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange){
+        String traceId = TraceIdContext.get(exchange);
+
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(CustomResponseCode.SCG_INVALID_TOKEN_ERROR.getHttpStatus());
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        response.getHeaders().set(
+                TraceIdContext.HEADER_NAME,
+                traceId
+        );
 
-        byte[] bytes = objectMapper.writeValueAsBytes(GlobalResponseDTO.from(CustomResponseCode.SCG_INVALID_TOKEN_ERROR));
+        byte[] bytes = objectMapper.writeValueAsBytes(
+                GlobalResponseDTO.from(
+                        CustomResponseCode.SCG_INVALID_TOKEN_ERROR,
+                        traceId
+                )
+        );
         return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
     }
 
