@@ -44,6 +44,8 @@ spring:
                 allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
                 # 모든 헤더 값을 허용
                 allowed-headers: "*"
+                exposed-headers:
+                  - X-Trace-Id
                 # 쿠키나 인증정보(Authorization 헤더 등)를 포함한 요청을 주고받는 것을 허용.
                 allow-credentials: true
           # 클라이언트가 보낸 요청의 주소를 보고, "어떤 내부 마이크로서비스로 토스해줄지" 길을 안내(Routing)해 주는 규칙.
@@ -76,7 +78,12 @@ spring:
               # 내부 서버가 이해하도록 주소 앞의 서비스 이름을 지우고 깔끔하게 변환함.
               filters:
                 - RewritePath=/${MEMBER_SERVICE_NAME}${MEMBER_SERVICE_OPEN_API_PATH}, ${MEMBER_SERVICE_OPEN_API_PATH}
-
+            - id: ${PROPERTY_SERVICE_NAME}-docs
+              uri: ${PROPERTY_SERVICE_URI}
+              predicates:
+                - Path=/${PROPERTY_SERVICE_NAME}${PROPERTY_SERVICE_OPEN_API_PATH}
+              filters:
+                - RewritePath=/${PROPERTY_SERVICE_NAME}${PROPERTY_SERVICE_OPEN_API_PATH}, ${PROPERTY_SERVICE_OPEN_API_PATH}
 # Open API
 # 게이트 웨이 화면에 통합 Swagger UI를 띄우는 설정
 springdoc:
@@ -88,7 +95,8 @@ springdoc:
       - name: ${MEMBER_SERVICE_NAME}
         # 해당 메뉴를 눌렀을 때 데이터를 가져올 경로 (위의 라우팅 규칙과 연결됨)
         url: /${MEMBER_SERVICE_NAME}${MEMBER_SERVICE_OPEN_API_PATH}
-
+      - name: ${PROPERTY_SERVICE_NAME}
+        url: /${PROPERTY_SERVICE_NAME}${PROPERTY_SERVICE_OPEN_API_PATH}
 # jwt
 jwt:
   # 클라이언트가 서버로 요청을 보낼 때, 인증 토큰(JWT)을 어떤 이름의 HTTP 헤더에 담아서 보낼지 그 이름을 지정하는 설정

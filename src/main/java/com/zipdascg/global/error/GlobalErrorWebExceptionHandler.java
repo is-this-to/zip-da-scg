@@ -1,5 +1,6 @@
 package com.zipdascg.global.error;
 
+import com.zipdascg.global.context.TraceIdContext;
 import com.zipdascg.global.response.GlobalResponseDTO;
 import com.zipdascg.global.response.constant.CustomResponseCode;
 import lombok.NonNull;
@@ -23,6 +24,8 @@ public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
     @Override
     @NonNull
     public Mono<Void> handle(@NonNull ServerWebExchange exchange, @NonNull Throwable ex) {
+        String traceId = TraceIdContext.get(exchange);
+
         ServerHttpResponse response = exchange.getResponse();
         CustomResponseCode customResponseCode = (ex instanceof ResponseStatusException res && res.getStatusCode().value() == 404)
                 ? CustomResponseCode.SCG_NOT_FOUND_ERROR
@@ -30,8 +33,17 @@ public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
 
         response.setStatusCode(customResponseCode.getHttpStatus());
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        response.getHeaders().set(
+                TraceIdContext.HEADER_NAME,
+                traceId
+        );
 
-        byte[] bytes = objectMapper.writeValueAsBytes((GlobalResponseDTO.from(customResponseCode)));
+        byte[] bytes = objectMapper.writeValueAsBytes(
+                GlobalResponseDTO.from(
+                        customResponseCode,
+                        traceId
+                )
+        );
         return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
     }
 }

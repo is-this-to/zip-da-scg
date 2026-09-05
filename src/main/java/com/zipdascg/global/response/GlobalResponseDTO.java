@@ -6,17 +6,48 @@ public record GlobalResponseDTO<T>(
         String code
         , String message
         , T data
+        , String traceId
 ) {
-    public static <T> GlobalResponseDTO<T> from(CustomResponseCode customResponseCode, T data){
-       return new GlobalResponseDTO<T>(customResponseCode.getCode(), customResponseCode.name(), data);
+    public static <T> GlobalResponseDTO<T> from(
+            CustomResponseCode customResponseCode,
+            T data,
+            String traceId
+    ) {
+        return new GlobalResponseDTO<>(
+                customResponseCode.getCode(),
+                customResponseCode.name(),
+                data,
+                traceId
+        );
     }
-    public static <T> GlobalResponseDTO<T> from(CustomResponseCode customResponseCode){
-        return new GlobalResponseDTO<T>(customResponseCode.getCode(), customResponseCode.name(), null);
+
+    public static GlobalResponseDTO<Void> from(
+            CustomResponseCode customResponseCode,
+            String traceId
+    ) {
+        return new GlobalResponseDTO<>(
+                customResponseCode.getCode(),
+                customResponseCode.name(),
+                null,
+                traceId
+        );
     }
-    public static <T> GlobalResponseDTO<T> success(CustomResponseCode customResponseCode, T data){
-        return GlobalResponseDTO.from(CustomResponseCode.SUCCESS, data);
+
+    public static <T> GlobalResponseDTO<T> success(
+            T data,
+            String traceId
+    ) {
+        return GlobalResponseDTO.from(
+                CustomResponseCode.SUCCESS,
+                data,
+                traceId
+        );
     }
-    public static <T> GlobalResponseDTO<T> success(CustomResponseCode customResponseCode){
-        return GlobalResponseDTO.from(CustomResponseCode.SUCCESS);
+
+    public static GlobalResponseDTO<Void> success(String traceId) {
+        return GlobalResponseDTO.from(
+                CustomResponseCode.SUCCESS,
+                traceId
+        );
     }
 }
