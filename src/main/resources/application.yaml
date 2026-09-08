@@ -39,7 +39,9 @@ spring:
             cors-configurations:
               '[/**]':
                 # 허용할 도메인 주소
-                allowed-origins: ${CORS_ALLOW_ORIGIN}
+                allowed-origins:
+                  - ${CORS_ALLOW_ORIGIN_CLIENT}
+                  - ${CORS_ALLOW_ORIGIN_ADMIN_CLIENT}
                 # 허용할 HTTP 요청 방식(조회, 생성, 수정, 삭제 등)을 지정.
                 allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
                 # 모든 헤더 값을 허용
