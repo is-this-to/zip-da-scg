@@ -1,5 +1,6 @@
 package com.zipdascg.global.error;
 
+import com.zipdascg.global.context.TraceIdContext;
 import com.zipdascg.global.response.GlobalResponseDTO;
 import com.zipdascg.global.response.constant.CustomResponseCode;
 import lombok.NonNull;
@@ -15,7 +16,7 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
-@Order(-2)
+@Order(-2) // spring의 기본 ErrorWebExceptionHandler보다 먼저 실행시키기 위해 '-2' 실행
 @RequiredArgsConstructor
 public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
     private final ObjectMapper objectMapper;
@@ -23,18 +24,26 @@ public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
     @Override
     @NonNull
     public Mono<Void> handle(@NonNull ServerWebExchange exchange, @NonNull Throwable ex) {
+        String traceId = TraceIdContext.get(exchange);
+
         ServerHttpResponse response = exchange.getResponse();
-        CustomResponseCode customResponseCode = (
-                ex instanceof ResponseStatusException res
-                && res.getStatusCode().value() == 404)
-                ? CustomResponseCode.NOT_FOUND_ERROR
-                : CustomResponseCode.SYSTEM_ERROR;
+        CustomResponseCode customResponseCode = (ex instanceof ResponseStatusException res && res.getStatusCode().value() == 404)
+                ? CustomResponseCode.SCG_NOT_FOUND_ERROR
+                : CustomResponseCode.SCG_SYSTEM_ERROR;
 
         response.setStatusCode(customResponseCode.getHttpStatus());
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        response.getHeaders().set(
+                TraceIdContext.HEADER_NAME,
+                traceId
+        );
 
-        byte[] bytes = objectMapper.writeValueAsBytes((GlobalResponseDTO.from(customResponseCode)));
+        byte[] bytes = objectMapper.writeValueAsBytes(
+                GlobalResponseDTO.from(
+                        customResponseCode,
+                        traceId
+                )
+        );
         return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
     }
-
 }

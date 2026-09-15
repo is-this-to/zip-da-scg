@@ -6,7 +6,7 @@ plugins {
 
 group = 'com'
 version = 'v1'
-description = 'meerkatgram-v2-scg'
+description = 'zip-da-scg'
 
 java {
     toolchain {
